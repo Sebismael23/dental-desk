@@ -38,8 +38,8 @@ export default function Navigation({ onBookingClick }: NavigationProps) {
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600">
                         <a href="#demo" className="hover:text-primary-600 transition-colors">Live Demo</a>
-                        <a href="#features" className="hover:text-primary-600 transition-colors">Features</a>
                         <a href="#calculator" className="hover:text-primary-600 transition-colors">ROI Calculator</a>
+                        <a href="#features" className="hover:text-primary-600 transition-colors">Features</a>
                         <a href="#pricing" className="hover:text-primary-600 transition-colors">Pricing</a>
                     </div>
 
