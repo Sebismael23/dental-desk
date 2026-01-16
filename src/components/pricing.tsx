@@ -53,7 +53,7 @@ export default function Pricing() {
                     }`}>
                     <div className="text-primary-400 font-semibold text-sm uppercase tracking-wider mb-2">Professional</div>
                     <div className="flex items-baseline justify-center gap-1 mb-6">
-                        <span className="text-5xl font-bold">$297</span>
+                        <span className="text-5xl font-bold">$197</span>
                         <span className="text-slate-400">/month</span>
                     </div>
 
