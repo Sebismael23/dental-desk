@@ -1,0 +1,15 @@
+The Conflict (What breaks the Agency Model)
+Look at your handle_new_user trigger (lines 352-386).
+
+The Logic: It currently says: "When a user is created in Auth, check raw_user_meta_data. If they have a practice_name, CREATE A NEW PRACTICE and make them the owner."
+
+The Problem: In your Agency model, YOU create the practice first (e.g., "Oak Creek Dental") via your Admin Dashboard. If you then invite Dr. Smith and he accepts, this trigger will fire. Since he is a "new user," if his invite metadata contains practice_name, the system might try to create a duplicate "Oak Creek Dental" instead of linking him to the one you already built.
+
+The Fix: You need to change the logic to: "If practice_id is provided in metadata, LINK to that existing practice. If practice_name is provided (and no ID), ONLY THEN create a new one."
+
+3. The Missing Piece: "Super Admin" Policy
+You added a role column, but you didn't explicitly define the "Super Admin" policy override for the practices table insert.
+
+Currently: CREATE POLICY "Admins can insert practices" ... WITH CHECK (is_admin() OR auth.uid() IS NOT NULL);
+
+This is too loose. It allows any logged-in user to create a practice. You want ONLY you (Super Admin) to do this.

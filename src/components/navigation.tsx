@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from 'react';
 
-export default function Navigation() {
+interface NavigationProps {
+    onBookingClick?: () => void;
+}
+
+export default function Navigation({ onBookingClick }: NavigationProps) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 
@@ -11,6 +15,11 @@ export default function Navigation() {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    const handleBooking = () => {
+        setMobileMenuOpen(false);
+        onBookingClick?.();
+    };
 
     return (
         <nav className={`fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 transition-all duration-300 ${scrolled ? 'shadow-sm' : ''}`}>
@@ -22,7 +31,7 @@ export default function Navigation() {
                             D
                         </div>
                         <span className="font-bold text-xl tracking-tight text-slate-800">
-                            DentDesk AI
+                            DentaVoice
                         </span>
                     </div>
 
@@ -34,10 +43,18 @@ export default function Navigation() {
                         <a href="#pricing" className="hover:text-primary-600 transition-colors">Pricing</a>
                     </div>
 
-                    {/* CTA Button */}
-                    <button className="hidden md:block bg-slate-900 text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-primary-600 transition-all duration-300 shadow-lg shadow-primary-500/20">
-                        Book a Strategy Call
-                    </button>
+                    {/* CTA Buttons */}
+                    <div className="hidden md:flex items-center gap-3">
+                        <a href="/login" className="text-slate-600 hover:text-primary-600 text-sm font-medium transition-colors">
+                            Sign In
+                        </a>
+                        <button
+                            onClick={handleBooking}
+                            className="bg-slate-900 text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-primary-600 transition-all duration-300 shadow-lg shadow-primary-500/20"
+                        >
+                            Book a Strategy Call
+                        </button>
+                    </div>
 
                     {/* Mobile menu button */}
                     <button
@@ -62,7 +79,10 @@ export default function Navigation() {
                             <a href="#features" className="text-slate-600 hover:text-primary-600 transition-colors font-medium py-2" onClick={() => setMobileMenuOpen(false)}>Features</a>
                             <a href="#calculator" className="text-slate-600 hover:text-primary-600 transition-colors font-medium py-2" onClick={() => setMobileMenuOpen(false)}>ROI Calculator</a>
                             <a href="#pricing" className="text-slate-600 hover:text-primary-600 transition-colors font-medium py-2" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
-                            <button className="bg-slate-900 text-white px-6 py-3 rounded-full font-medium w-full">
+                            <button
+                                onClick={handleBooking}
+                                className="bg-slate-900 text-white px-6 py-3 rounded-full font-medium w-full"
+                            >
                                 Book a Strategy Call
                             </button>
                         </div>

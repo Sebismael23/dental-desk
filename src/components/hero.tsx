@@ -25,7 +25,7 @@ export default function Hero({ onDemoClick }: { onDemoClick: () => void }) {
                     {/* Subheadline */}
                     <p className="text-lg text-slate-600 mb-8 leading-relaxed max-w-2xl mx-auto animate-fade-in-up">
                         Your front desk works 9-5. Patients call 24/7.
-                        DentDesk AI is the AI receptionist that answers every call, qualifies leads, and books appointments directly into your calendar.
+                        DentaVoice is the AI receptionist that answers every call, qualifies leads, and books appointments directly into your calendar.
                     </p>
 
                     {/* CTAs */}

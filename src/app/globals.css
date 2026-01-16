@@ -220,3 +220,66 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-500);
 }
+
+/* Dashboard specific styles */
+.dashboard-card {
+  background: white;
+  border-radius: 1rem;
+  border: 1px solid var(--slate-100);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Toggle switch base */
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  height: 1.5rem;
+  width: 2.75rem;
+  align-items: center;
+  border-radius: 9999px;
+  transition: background-color 0.2s;
+}
+
+.toggle-switch-thumb {
+  display: inline-block;
+  height: 1rem;
+  width: 1rem;
+  transform: translateX(0.25rem);
+  border-radius: 9999px;
+  background: white;
+  transition: transform 0.2s;
+}
+
+.toggle-switch[data-checked="true"] .toggle-switch-thumb {
+  transform: translateX(1.5rem);
+}
+
+/* Table styles */
+.dashboard-table {
+  width: 100%;
+  text-align: left;
+}
+
+.dashboard-table th {
+  padding: 1rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate-500);
+  background: var(--slate-50);
+  border-bottom: 1px solid var(--slate-100);
+}
+
+.dashboard-table td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--slate-100);
+}
+
+.dashboard-table tbody tr:hover {
+  background: var(--slate-50);
+}

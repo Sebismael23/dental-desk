@@ -9,11 +9,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "DentDesk AI | Never Miss Another Patient Call",
+  title: "DentaVoice | Never Miss Another Patient Call",
   description: "Your AI receptionist answers every call 24/7, books appointments, handles rescheduling, and captures new patient leads—even at 2am on a Sunday.",
-  keywords: ["dental AI", "dental receptionist", "AI phone answering", "dental practice automation", "patient scheduling"],
+  keywords: ["dental AI", "dental receptionist", "AI phone answering", "dental practice automation", "patient scheduling", "DentaVoice"],
   openGraph: {
-    title: "DentDesk AI | Never Miss Another Patient Call",
+    title: "DentaVoice | Never Miss Another Patient Call",
     description: "Your AI receptionist answers every call 24/7, books appointments, handles rescheduling, and captures new patient leads.",
     type: "website",
   },
