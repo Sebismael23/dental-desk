@@ -269,8 +269,8 @@ Please log in and change your password in Settings.`;
                                     onChange={handleChange}
                                     className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                                 >
-                                    <option value="free_trial">Free Trial (30 days)</option>
-                                    <option value="basic">Basic ($99/mo)</option>
+                                    <option value="free_trial">Free Trial (14 days)</option>
+                                    <option value="basic">Basic ($149/mo)</option>
                                     <option value="pro">Pro ($197/mo)</option>
                                 </select>
                             </div>
@@ -322,13 +322,15 @@ Please log in and change your password in Settings.`;
                                 <p className="text-slate-400">Account created successfully!</p>
                             </div>
 
-                            {/* AI Phone Number */}
-                            <div className="bg-slate-900 rounded-lg p-4 text-center">
-                                <div className="text-slate-400 text-sm mb-1">AI Phone Number</div>
-                                <div className="text-2xl font-mono text-green-400 flex items-center justify-center gap-2">
-                                    <Phone size={20} />
-                                    {practiceInfo.aiPhoneNumber}
+                            {/* AI Setup Pending Notice */}
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 text-center">
+                                <div className="text-amber-400 text-sm font-medium mb-1 flex items-center justify-center gap-2">
+                                    <AlertCircle size={16} />
+                                    AI Setup Required
                                 </div>
+                                <p className="text-slate-400 text-sm">
+                                    Go to Edit Practice to configure the Twilio phone number and Vapi assistant.
+                                </p>
                             </div>
 
                             {/* Credentials Section */}

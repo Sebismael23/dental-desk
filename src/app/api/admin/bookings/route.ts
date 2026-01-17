@@ -33,6 +33,8 @@ export async function PATCH(request: NextRequest) {
         const body = await request.json();
         const { id, status, notes } = body;
 
+        console.log('PATCH booking - id:', id, 'status:', status, 'notes:', notes);
+
         if (!id || !status) {
             return NextResponse.json({ error: 'ID and status required' }, { status: 400 });
         }
@@ -48,21 +50,27 @@ export async function PATCH(request: NextRequest) {
             updates.notes = notes;
         }
 
+        console.log('Updating with - status:', status);
+
         const { data, error } = await supabaseAdmin
             .from('booking_requests')
             .update(updates)
             .eq('id', id)
-            .select()
-            .single();
+            .select();
 
         if (error) {
-            console.error('Error updating booking:', error);
+            console.error('Supabase error message:', error.message);
+            console.error('Supabase error code:', error.code);
+            console.error('Supabase error details:', error.details);
+            console.error('Supabase error hint:', error.hint);
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        return NextResponse.json({ success: true, booking: data });
+        console.log('Update success, data length:', data?.length);
+
+        return NextResponse.json({ success: true, booking: data?.[0] || null });
     } catch (err) {
-        console.error('API error:', err);
+        console.error('API catch error:', err);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

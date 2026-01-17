@@ -140,21 +140,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 5. Generate placeholder AI phone number
-        const areaCode = '801';
-        const aiPhoneNumber = `(${areaCode}) 555-${Math.floor(1000 + Math.random() * 9000)}`;
+        // Note: AI phone number will be set up manually via Edit Practice modal
+        // Practice status stays 'onboarding' until AI is configured and verified
 
-        // 6. Update practice with AI phone and Vapi ID
-        await supabaseAdmin
-            .from('practices')
-            .update({
-                ai_phone_number: aiPhoneNumber,
-                vapi_assistant_id: `vapi_${practice.id.substring(0, 8)}`,
-                status: 'pilot'
-            })
-            .eq('id', practice.id);
-
-        // 7. Return success with credentials
+        // 5. Return success with credentials
         return NextResponse.json({
             success: true,
             message: 'Client created successfully',
@@ -166,7 +155,8 @@ export async function POST(request: NextRequest) {
             practice: {
                 id: practice.id,
                 name: practiceName,
-                aiPhoneNumber,
+                aiPhoneNumber: null, // Will be set up manually
+                setupRequired: true,
             },
             user: {
                 id: authData.user.id,

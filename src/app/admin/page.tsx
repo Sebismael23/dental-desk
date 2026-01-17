@@ -9,6 +9,7 @@ import {
     MoreVertical, UserPlus, Trash2, Edit, ExternalLink, PhoneCall
 } from 'lucide-react';
 import OnboardModal from '@/components/admin/onboard-modal';
+import { useAdminUser } from '@/components/admin/admin-layout';
 
 // Types
 interface Practice {
@@ -67,9 +68,12 @@ function StatusBadge({ status }: { status: string }) {
         paused: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
         churned: 'bg-red-500/10 text-red-400 border-red-500/20',
         new: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+        pending: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
         contacted: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
         scheduled: 'bg-green-500/10 text-green-400 border-green-500/20',
         completed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+        not_interested: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+        unsubscribed: 'bg-red-500/10 text-red-400 border-red-500/20',
         free_trial: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
         basic: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
         pro: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
@@ -213,6 +217,262 @@ function PracticeDetailModal({ practice, isOpen, onClose }: {
     );
 }
 
+// Edit Practice Modal
+function EditPracticeModal({ practice, isOpen, onClose, onSave }: {
+    practice: Practice | null;
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: () => void;
+}) {
+    const [formData, setFormData] = useState({
+        name: '',
+        owner_name: '',
+        email: '',
+        phone: '',
+        ai_phone_number: '',
+        vapi_assistant_id: '',
+        status: 'onboarding' as string,
+        plan: 'free_trial' as string,
+    });
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (practice && isOpen) {
+            setFormData({
+                name: practice.name || '',
+                owner_name: practice.owner_name || '',
+                email: practice.email || '',
+                phone: practice.phone || '',
+                ai_phone_number: practice.ai_phone_number || '',
+                vapi_assistant_id: '', // Not in current Practice type, will be added
+                status: practice.status || 'onboarding',
+                plan: practice.plan || 'free_trial',
+            });
+            setError(null);
+        }
+    }, [practice, isOpen]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!practice) return;
+        setSaving(true);
+        setError(null);
+
+        try {
+            const res = await fetch('/api/admin/practices', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: practice.id,
+                    ...formData,
+                }),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to update practice');
+            }
+
+            onSave();
+            onClose();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to update');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (!isOpen || !practice) return null;
+
+    const needsAiSetup = !formData.ai_phone_number;
+
+    return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center p-6 border-b border-slate-700 sticky top-0 bg-slate-800">
+                    <h2 className="text-xl font-bold text-white">Edit Practice</h2>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                    {error && (
+                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* AI Setup Warning */}
+                    {needsAiSetup && (
+                        <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                            <div className="flex items-center gap-2 text-amber-400 font-medium">
+                                <Activity size={16} />
+                                AI Setup Required
+                            </div>
+                            <p className="text-slate-400 text-sm mt-1">
+                                Configure the Twilio phone number and Vapi assistant below.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Practice Name */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                            Practice Name
+                        </label>
+                        <input
+                            type="text"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                        />
+                    </div>
+
+                    {/* Owner Name & Email */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                                Owner Name
+                            </label>
+                            <input
+                                type="text"
+                                name="owner_name"
+                                value={formData.owner_name}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Status & Plan */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                                Status
+                            </label>
+                            <select
+                                name="status"
+                                value={formData.status}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                            >
+                                <option value="onboarding">Onboarding</option>
+                                <option value="pilot">Pilot</option>
+                                <option value="active">Active</option>
+                                <option value="paused">Paused</option>
+                                <option value="churned">Churned</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                                Plan
+                            </label>
+                            <select
+                                name="plan"
+                                value={formData.plan}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                            >
+                                <option value="free_trial">Free Trial (14 days)</option>
+                                <option value="basic">Basic ($149/mo)</option>
+                                <option value="pro">Pro ($197/mo)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-slate-700 pt-4">
+                        <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                            <Phone size={16} className="text-green-400" />
+                            AI Configuration
+                        </h3>
+                    </div>
+
+                    {/* AI Phone Number */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                            AI Phone Number (Twilio)
+                        </label>
+                        <input
+                            type="text"
+                            name="ai_phone_number"
+                            value={formData.ai_phone_number}
+                            onChange={handleChange}
+                            placeholder="+1 (555) 123-4567"
+                            className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                        />
+                        <p className="text-slate-500 text-xs mt-1">
+                            Enter the Twilio phone number provisioned for this practice
+                        </p>
+                    </div>
+
+                    {/* Vapi Assistant ID */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                            Vapi Assistant ID
+                        </label>
+                        <input
+                            type="text"
+                            name="vapi_assistant_id"
+                            value={formData.vapi_assistant_id}
+                            onChange={handleChange}
+                            placeholder="asst_xxxxxxxxxx"
+                            className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                        />
+                        <p className="text-slate-500 text-xs mt-1">
+                            Enter the Vapi assistant ID configured for this practice
+                        </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            {saving ? (
+                                <>
+                                    <Loader2 size={18} className="animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                'Save Changes'
+                            )}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 // Dropdown Menu Component - Uses fixed positioning to avoid clipping
 function DropdownMenu({ items, isOpen, onClose, buttonRect }: {
     items: { label: string; icon: React.ElementType; onClick: () => void; danger?: boolean }[];
@@ -289,8 +549,13 @@ export default function AdminDashboardPage() {
     // Modals and dropdowns
     const [selectedPractice, setSelectedPractice] = useState<Practice | null>(null);
     const [showPracticeDetail, setShowPracticeDetail] = useState(false);
+    const [showEditPractice, setShowEditPractice] = useState(false);
     const [openPracticeMenu, setOpenPracticeMenu] = useState<{ id: string; rect: DOMRect } | null>(null);
     const [openBookingMenu, setOpenBookingMenu] = useState<{ id: string; rect: DOMRect } | null>(null);
+
+    // Get current admin user and check permissions
+    const adminUser = useAdminUser();
+    const canEdit = adminUser?.role !== 'viewer'; // Viewers cannot edit
 
     const fetchData = async () => {
         setRefreshing(true);
@@ -308,7 +573,7 @@ export default function AdminDashboardPage() {
                     activePractices: practicesData.practices.filter((p: Practice) => p.status === 'active').length,
                     monthlyRevenue: practicesData.practices.reduce((sum: number, p: Practice) => {
                         if (p.plan === 'pro') return sum + 197;
-                        if (p.plan === 'basic') return sum + 99;
+                        if (p.plan === 'basic') return sum + 149;
                         return sum;
                     }, 0)
                 }));
@@ -335,6 +600,24 @@ export default function AdminDashboardPage() {
 
     useEffect(() => {
         fetchData();
+
+        // Check for onboard params from Bookings page redirect
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('onboard') === 'true') {
+                const prefill = {
+                    practiceName: params.get('name') || '',
+                    ownerName: params.get('owner') || '',
+                    email: params.get('email') || '',
+                    phone: params.get('phone') || '',
+                    bookingId: params.get('bookingId') || undefined,
+                };
+                setOnboardPrefill(prefill);
+                setShowOnboard(true);
+                // Clean up URL
+                window.history.replaceState({}, '', '/admin');
+            }
+        }
     }, []);
 
     const updateBookingStatus = async (id: string, newStatus: string) => {
@@ -434,12 +717,14 @@ export default function AdminDashboardPage() {
                             <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
                             Refresh
                         </button>
-                        <button
-                            onClick={handleOpenOnboard}
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20"
-                        >
-                            <Plus size={18} /> Onboard Client
-                        </button>
+                        {canEdit && (
+                            <button
+                                onClick={handleOpenOnboard}
+                                className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20"
+                            >
+                                <Plus size={18} /> Onboard Client
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -540,7 +825,15 @@ export default function AdminDashboardPage() {
                                         {filteredPractices.map((practice) => (
                                             <tr key={practice.id} className="hover:bg-slate-700/30 transition-colors group">
                                                 <td className="p-4 lg:p-6">
-                                                    <div className="font-semibold text-white">{practice.name}</div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="font-semibold text-white">{practice.name}</div>
+                                                        {!practice.ai_phone_number && (
+                                                            <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-xs rounded-full border border-amber-500/20 flex items-center gap-1">
+                                                                <Activity size={10} />
+                                                                Setup
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="text-slate-500 text-sm">{practice.email}</div>
                                                 </td>
                                                 <td className="p-4 lg:p-6 hidden sm:table-cell">
@@ -551,9 +844,15 @@ export default function AdminDashboardPage() {
                                                 </td>
                                                 <td className="p-4 lg:p-6 hidden lg:table-cell">
                                                     {practice.ai_phone_number ? (
-                                                        <span className="text-slate-300 font-mono text-sm">{practice.ai_phone_number}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-green-400 font-mono text-sm">{practice.ai_phone_number}</span>
+                                                            <CheckCircle size={14} className="text-green-400" />
+                                                        </div>
                                                     ) : (
-                                                        <span className="text-slate-500 text-sm">Not provisioned</span>
+                                                        <span className="text-amber-400 text-sm flex items-center gap-1">
+                                                            <Activity size={12} />
+                                                            Not configured
+                                                        </span>
                                                     )}
                                                 </td>
                                                 <td className="p-4 lg:p-6 hidden lg:table-cell text-slate-400 text-sm">
@@ -571,33 +870,40 @@ export default function AdminDashboardPage() {
                                                             <Eye size={14} />
                                                             <span className="hidden sm:inline">View</span>
                                                         </button>
-                                                        <div className="relative">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    const rect = e.currentTarget.getBoundingClientRect();
-                                                                    setOpenPracticeMenu(
-                                                                        openPracticeMenu?.id === practice.id
-                                                                            ? null
-                                                                            : { id: practice.id, rect }
-                                                                    );
-                                                                }}
-                                                                className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 rounded text-white font-medium"
-                                                            >
-                                                                <MoreVertical size={14} />
-                                                            </button>
-                                                            <DropdownMenu
-                                                                isOpen={openPracticeMenu?.id === practice.id}
-                                                                onClose={() => setOpenPracticeMenu(null)}
-                                                                buttonRect={openPracticeMenu?.rect}
-                                                                items={[
-                                                                    { label: 'Edit Practice', icon: Edit, onClick: () => alert('Edit not implemented yet') },
-                                                                    { label: 'Email Client', icon: Mail, onClick: () => window.open(`mailto:${practice.email}`) },
-                                                                    { label: 'Test AI Call', icon: PhoneCall, onClick: () => practice.ai_phone_number && window.open(`tel:${practice.ai_phone_number}`) },
-                                                                    { label: 'View in Supabase', icon: ExternalLink, onClick: () => window.open(`https://supabase.com/dashboard/project/ubljkwzhclzdcxykwhqy/editor/practices?id=${practice.id}`) },
-                                                                ]}
-                                                            />
-                                                        </div>
+                                                        {canEdit && (
+                                                            <div className="relative">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const rect = e.currentTarget.getBoundingClientRect();
+                                                                        setOpenPracticeMenu(
+                                                                            openPracticeMenu?.id === practice.id
+                                                                                ? null
+                                                                                : { id: practice.id, rect }
+                                                                        );
+                                                                    }}
+                                                                    className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 rounded text-white font-medium"
+                                                                >
+                                                                    <MoreVertical size={14} />
+                                                                </button>
+                                                                <DropdownMenu
+                                                                    isOpen={openPracticeMenu?.id === practice.id}
+                                                                    onClose={() => setOpenPracticeMenu(null)}
+                                                                    buttonRect={openPracticeMenu?.rect}
+                                                                    items={[
+                                                                        {
+                                                                            label: 'Edit Practice', icon: Edit, onClick: () => {
+                                                                                setSelectedPractice(practice);
+                                                                                setShowEditPractice(true);
+                                                                            }
+                                                                        },
+                                                                        { label: 'Email Client', icon: Mail, onClick: () => window.open(`mailto:${practice.email}`) },
+                                                                        { label: 'Test AI Call', icon: PhoneCall, onClick: () => practice.ai_phone_number && window.open(`tel:${practice.ai_phone_number}`) },
+                                                                        { label: 'View in Supabase', icon: ExternalLink, onClick: () => window.open(`https://supabase.com/dashboard/project/ubljkwzhclzdcxykwhqy/editor/practices?id=${practice.id}`) },
+                                                                    ]}
+                                                                />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -609,99 +915,112 @@ export default function AdminDashboardPage() {
                     </>
                 )}
 
-                {/* Bookings Tab */}
-                {activeTab === 'bookings' && (
-                    <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
-                        {bookings.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <Calendar className="mx-auto text-slate-600 mb-4" size={48} />
-                                <h3 className="text-lg font-semibold text-slate-300 mb-2">No booking requests</h3>
-                                <p className="text-slate-500">Leads from the landing page will appear here</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-slate-700">
-                                {bookings.map((booking) => (
-                                    <div key={booking.id} className="p-6 hover:bg-slate-700/30 transition-colors">
-                                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <h3 className="font-semibold text-white text-lg">
-                                                        {booking.first_name} {booking.last_name}
-                                                    </h3>
-                                                    <StatusBadge status={booking.status} />
+                {/* Bookings Tab - Only show pending/new bookings */}
+                {activeTab === 'bookings' && (() => {
+                    const pendingBookings = bookings.filter(b =>
+                        b.status === 'new' || b.status === 'pending' || !b.status
+                    );
+                    return (
+                        <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+                            {pendingBookings.length === 0 ? (
+                                <div className="p-12 text-center">
+                                    <Calendar className="mx-auto text-slate-600 mb-4" size={48} />
+                                    <h3 className="text-lg font-semibold text-slate-300 mb-2">No pending requests</h3>
+                                    <p className="text-slate-500 mb-4">All booking requests have been processed</p>
+                                    <a
+                                        href="/admin/bookings"
+                                        className="text-blue-400 hover:text-blue-300 text-sm"
+                                    >
+                                        View all booking history →
+                                    </a>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-slate-700">
+                                    {pendingBookings.map((booking) => (
+                                        <div key={booking.id} className="p-6 hover:bg-slate-700/30 transition-colors">
+                                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <h3 className="font-semibold text-white text-lg">
+                                                            {booking.first_name} {booking.last_name}
+                                                        </h3>
+                                                        <StatusBadge status={booking.status} />
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-4 text-sm text-slate-400">
+                                                        <span className="flex items-center gap-1">
+                                                            <Mail size={14} /> {booking.email}
+                                                        </span>
+                                                        <span className="flex items-center gap-1">
+                                                            <Phone size={14} /> {booking.phone}
+                                                        </span>
+                                                        <span className="flex items-center gap-1">
+                                                            <Clock size={14} /> {formatTimeAgo(booking.created_at)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="mt-3">
+                                                        <span className="inline-block px-2 py-1 bg-slate-700 rounded text-xs text-slate-300">
+                                                            Goal: {GOAL_LABELS[booking.goal] || booking.goal}
+                                                        </span>
+                                                    </div>
+                                                    {booking.details && (
+                                                        <p className="mt-2 text-sm text-slate-400 italic">
+                                                            "{booking.details}"
+                                                        </p>
+                                                    )}
                                                 </div>
-                                                <div className="flex flex-wrap gap-4 text-sm text-slate-400">
-                                                    <span className="flex items-center gap-1">
-                                                        <Mail size={14} /> {booking.email}
-                                                    </span>
-                                                    <span className="flex items-center gap-1">
-                                                        <Phone size={14} /> {booking.phone}
-                                                    </span>
-                                                    <span className="flex items-center gap-1">
-                                                        <Clock size={14} /> {formatTimeAgo(booking.created_at)}
-                                                    </span>
-                                                </div>
-                                                <div className="mt-3">
-                                                    <span className="inline-block px-2 py-1 bg-slate-700 rounded text-xs text-slate-300">
-                                                        Goal: {GOAL_LABELS[booking.goal] || booking.goal}
-                                                    </span>
-                                                </div>
-                                                {booking.details && (
-                                                    <p className="mt-2 text-sm text-slate-400 italic">
-                                                        "{booking.details}"
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div className="flex gap-2 items-center">
-                                                {/* Quick action buttons */}
-                                                {booking.status !== 'completed' && (
-                                                    <button
-                                                        onClick={() => convertToClient(booking)}
-                                                        className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-medium flex items-center gap-2"
-                                                    >
-                                                        <UserPlus size={14} />
-                                                        Convert to Client
-                                                    </button>
-                                                )}
+                                                <div className="flex gap-2 items-center">
+                                                    {/* Quick action buttons */}
+                                                    {booking.status !== 'completed' && (
+                                                        <button
+                                                            onClick={() => convertToClient(booking)}
+                                                            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-medium flex items-center gap-2"
+                                                        >
+                                                            <UserPlus size={14} />
+                                                            Convert to Client
+                                                        </button>
+                                                    )}
 
-                                                {/* Options dropdown */}
-                                                <div className="relative">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const rect = e.currentTarget.getBoundingClientRect();
-                                                            setOpenBookingMenu(
-                                                                openBookingMenu?.id === booking.id
-                                                                    ? null
-                                                                    : { id: booking.id, rect }
-                                                            );
-                                                        }}
-                                                        className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg"
-                                                    >
-                                                        <MoreVertical size={16} />
-                                                    </button>
-                                                    <DropdownMenu
-                                                        isOpen={openBookingMenu?.id === booking.id}
-                                                        onClose={() => setOpenBookingMenu(null)}
-                                                        buttonRect={openBookingMenu?.rect}
-                                                        items={[
-                                                            { label: 'Mark Contacted', icon: CheckCircle, onClick: () => updateBookingStatus(booking.id, 'contacted') },
-                                                            { label: 'Mark Scheduled', icon: Calendar, onClick: () => updateBookingStatus(booking.id, 'scheduled') },
-                                                            { label: 'Mark Completed', icon: CheckCircle, onClick: () => updateBookingStatus(booking.id, 'completed') },
-                                                            { label: 'Email Lead', icon: Mail, onClick: () => window.open(`mailto:${booking.email}`) },
-                                                            { label: 'Call Lead', icon: PhoneCall, onClick: () => window.open(`tel:${booking.phone}`) },
-                                                            { label: 'Delete', icon: Trash2, onClick: () => deleteBooking(booking.id), danger: true },
-                                                        ]}
-                                                    />
+                                                    {/* Options dropdown */}
+                                                    {canEdit && (
+                                                        <div className="relative">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                                    setOpenBookingMenu(
+                                                                        openBookingMenu?.id === booking.id
+                                                                            ? null
+                                                                            : { id: booking.id, rect }
+                                                                    );
+                                                                }}
+                                                                className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg"
+                                                            >
+                                                                <MoreVertical size={16} />
+                                                            </button>
+                                                            <DropdownMenu
+                                                                isOpen={openBookingMenu?.id === booking.id}
+                                                                onClose={() => setOpenBookingMenu(null)}
+                                                                buttonRect={openBookingMenu?.rect}
+                                                                items={[
+                                                                    { label: 'Mark Contacted', icon: CheckCircle, onClick: () => updateBookingStatus(booking.id, 'contacted') },
+                                                                    { label: 'Mark Scheduled', icon: Calendar, onClick: () => updateBookingStatus(booking.id, 'scheduled') },
+                                                                    { label: 'Mark Completed', icon: CheckCircle, onClick: () => updateBookingStatus(booking.id, 'completed') },
+                                                                    { label: 'Not Interested', icon: X, onClick: () => updateBookingStatus(booking.id, 'not_interested') },
+                                                                    { label: 'Email Lead', icon: Mail, onClick: () => window.open(`mailto:${booking.email}`) },
+                                                                    { label: 'Call Lead', icon: PhoneCall, onClick: () => window.open(`tel:${booking.phone}`) },
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* Quick Actions Panel */}
                 <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -767,6 +1086,14 @@ export default function AdminDashboardPage() {
                 practice={selectedPractice}
                 isOpen={showPracticeDetail}
                 onClose={() => setShowPracticeDetail(false)}
+            />
+
+            {/* Edit Practice Modal */}
+            <EditPracticeModal
+                practice={selectedPractice}
+                isOpen={showEditPractice}
+                onClose={() => setShowEditPractice(false)}
+                onSave={fetchData}
             />
 
             {/* Onboard Modal */}

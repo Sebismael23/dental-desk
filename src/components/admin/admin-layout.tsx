@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -14,6 +14,17 @@ interface AdminLayoutProps {
     children: React.ReactNode;
 }
 
+interface AdminUser {
+    id: string;
+    email: string;
+    full_name: string | null;
+    role: 'super_admin' | 'admin' | 'viewer';
+}
+
+// Context to share admin user data
+const AdminUserContext = createContext<AdminUser | null>(null);
+export const useAdminUser = () => useContext(AdminUserContext);
+
 const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
     { icon: Users, label: 'Practices', href: '/admin/practices' },
@@ -23,7 +34,13 @@ const navItems = [
     { icon: Settings, label: 'Settings', href: '/admin/settings' },
 ];
 
-function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+const ROLE_LABELS: Record<string, string> = {
+    super_admin: 'Super Admin',
+    admin: 'Admin',
+    viewer: 'Viewer',
+};
+
+function Sidebar({ collapsed, onToggle, adminUser }: { collapsed: boolean; onToggle: () => void; adminUser: AdminUser | null }) {
     const pathname = usePathname();
     const router = useRouter();
     const supabase = createClient();
@@ -33,7 +50,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         setLoggingOut(true);
         try {
             await supabase.auth.signOut();
-            router.push('/login');
+            router.push('/admin-login');
         } catch (err) {
             console.error('Error signing out:', err);
             setLoggingOut(false);
@@ -46,13 +63,15 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
             {/* Logo */}
             <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
                 <Link href="/admin" className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
                         <Shield size={20} className="text-white" />
                     </div>
                     {!collapsed && (
                         <div>
                             <div className="font-bold text-white text-lg">DentaVoice</div>
-                            <div className="text-xs text-slate-500 -mt-0.5">Super Admin</div>
+                            <div className="text-xs text-slate-500 -mt-0.5">
+                                {adminUser ? ROLE_LABELS[adminUser.role] : 'Admin Console'}
+                            </div>
                         </div>
                     )}
                 </Link>
@@ -100,7 +119,10 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     );
 }
 
-function Navbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
+function Navbar({ onMobileMenuToggle, adminUser }: { onMobileMenuToggle: () => void; adminUser: AdminUser | null }) {
+    const displayName = adminUser?.full_name || adminUser?.email?.split('@')[0] || 'Admin User';
+    const displayRole = adminUser ? ROLE_LABELS[adminUser.role] : 'Admin';
+
     return (
         <header className="h-16 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-6 sticky top-0 z-30">
             {/* Mobile menu button */}
@@ -134,8 +156,8 @@ function Navbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
                 {/* User menu */}
                 <div className="flex items-center gap-3 pl-3 border-l border-slate-700">
                     <div className="hidden sm:block text-right">
-                        <div className="text-sm font-medium text-white">Admin User</div>
-                        <div className="text-xs text-slate-500">Super Admin</div>
+                        <div className="text-sm font-medium text-white">{displayName}</div>
+                        <div className="text-xs text-slate-500">{displayRole}</div>
                     </div>
                     <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                         <User size={18} className="text-white" />
@@ -146,7 +168,7 @@ function Navbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
     );
 }
 
-function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function MobileMenu({ isOpen, onClose, adminUser }: { isOpen: boolean; onClose: () => void; adminUser: AdminUser | null }) {
     const pathname = usePathname();
     const router = useRouter();
     const supabase = createClient();
@@ -156,7 +178,7 @@ function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
         setLoggingOut(true);
         try {
             await supabase.auth.signOut();
-            router.push('/login');
+            router.push('/admin-login');
         } catch (err) {
             console.error('Error signing out:', err);
             setLoggingOut(false);
@@ -171,12 +193,14 @@ function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
             <div className="fixed left-0 top-0 h-full w-72 bg-slate-900 border-r border-slate-800 p-4 flex flex-col">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
                             <Shield size={20} className="text-white" />
                         </div>
                         <div>
                             <div className="font-bold text-white">DentaVoice</div>
-                            <div className="text-xs text-slate-500">Super Admin</div>
+                            <div className="text-xs text-slate-500">
+                                {adminUser ? ROLE_LABELS[adminUser.role] : 'Admin Console'}
+                            </div>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
@@ -223,31 +247,71 @@ function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 export default function AdminLayoutClient({ children }: AdminLayoutProps) {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+    const [loading, setLoading] = useState(true);
+    const supabase = createClient();
+
+    useEffect(() => {
+        const fetchAdminUser = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data: adminData } = await supabase
+                        .from('admin_users')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (adminData) {
+                        setAdminUser(adminData as AdminUser);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching admin user:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAdminUser();
+    }, [supabase]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <Loader2 size={32} className="animate-spin text-blue-400" />
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white">
-            {/* Desktop Sidebar */}
-            <div className="hidden lg:block">
-                <Sidebar
-                    collapsed={sidebarCollapsed}
-                    onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        <AdminUserContext.Provider value={adminUser}>
+            <div className="min-h-screen bg-slate-950 text-white">
+                {/* Desktop Sidebar */}
+                <div className="hidden lg:block">
+                    <Sidebar
+                        collapsed={sidebarCollapsed}
+                        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+                        adminUser={adminUser}
+                    />
+                </div>
+
+                {/* Mobile Menu */}
+                <MobileMenu
+                    isOpen={mobileMenuOpen}
+                    onClose={() => setMobileMenuOpen(false)}
+                    adminUser={adminUser}
                 />
-            </div>
 
-            {/* Mobile Menu */}
-            <MobileMenu
-                isOpen={mobileMenuOpen}
-                onClose={() => setMobileMenuOpen(false)}
-            />
-
-            {/* Main content area */}
-            <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
-                }`}>
-                <Navbar onMobileMenuToggle={() => setMobileMenuOpen(true)} />
-                <main className="min-h-[calc(100vh-4rem)]">
-                    {children}
-                </main>
+                {/* Main content area */}
+                <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
+                    }`}>
+                    <Navbar onMobileMenuToggle={() => setMobileMenuOpen(true)} adminUser={adminUser} />
+                    <main className="min-h-[calc(100vh-4rem)]">
+                        {children}
+                    </main>
+                </div>
             </div>
-        </div>
+        </AdminUserContext.Provider>
     );
 }
