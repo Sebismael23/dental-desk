@@ -13,7 +13,11 @@ const features = [
     'Insurance pre-qualification',
 ];
 
-export default function Pricing() {
+interface PricingProps {
+    onBookingClick?: () => void;
+}
+
+export default function Pricing({ onBookingClick }: PricingProps) {
     const [isVisible, setIsVisible] = useState(false);
     const sectionRef = useRef<HTMLElement>(null);
 
@@ -69,7 +73,10 @@ export default function Pricing() {
                     </div>
                 </div>
 
-                <button className="bg-primary-600 text-white px-10 py-5 rounded-full text-xl font-bold hover:bg-primary-500 transition-all shadow-xl shadow-primary-500/20 transform hover:-translate-y-1">
+                <button
+                    onClick={onBookingClick}
+                    className="bg-primary-600 text-white px-10 py-5 rounded-full text-xl font-bold hover:bg-primary-500 transition-all shadow-xl shadow-primary-500/20 transform hover:-translate-y-1"
+                >
                     Start Your 14-Day Free Pilot
                 </button>
                 <p className="mt-6 text-slate-400 text-sm">No credit card required for setup • Cancel anytime</p>

@@ -1,12 +1,16 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import {
     LayoutDashboard,
     Phone,
     Users,
     Settings,
     LogOut,
+    Loader2,
 } from 'lucide-react';
+import { useState } from 'react';
 
 export type ViewType = 'dashboard' | 'calls' | 'leads' | 'settings';
 
@@ -43,9 +47,24 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose, currentView, onNavigate }: SidebarProps) {
+    const router = useRouter();
+    const supabase = createClient();
+    const [loggingOut, setLoggingOut] = useState(false);
+
     const handleNavigate = (view: ViewType) => {
         onNavigate(view);
         onClose();
+    };
+
+    const handleSignOut = async () => {
+        setLoggingOut(true);
+        try {
+            await supabase.auth.signOut();
+            router.push('/login');
+        } catch (err) {
+            console.error('Error signing out:', err);
+            setLoggingOut(false);
+        }
     };
 
     return (
@@ -117,9 +136,13 @@ export default function Sidebar({ isOpen, onClose, currentView, onNavigate }: Si
 
                 {/* Sign Out */}
                 <div className="absolute bottom-6 left-6 right-6">
-                    <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-red-400/10 transition-colors">
-                        <LogOut size={20} />
-                        Sign Out
+                    <button
+                        onClick={handleSignOut}
+                        disabled={loggingOut}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
+                    >
+                        {loggingOut ? <Loader2 size={20} className="animate-spin" /> : <LogOut size={20} />}
+                        {loggingOut ? 'Signing out...' : 'Sign Out'}
                     </button>
                 </div>
             </aside>

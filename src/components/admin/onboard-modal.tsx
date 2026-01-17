@@ -1,41 +1,100 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Loader2, Check, Phone, User, Mail, Building, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+    X, Loader2, Check, Phone, User, Mail, Building,
+    AlertCircle, Copy, CheckCircle, ExternalLink, Key
+} from 'lucide-react';
+
+interface OnboardPrefill {
+    practiceName: string;
+    ownerName: string;
+    email: string;
+    phone: string;
+    bookingId?: string;
+}
 
 interface OnboardModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: () => void;
+    onSuccess: () => void;
+    prefill?: OnboardPrefill | null;
 }
 
 type Step = 'info' | 'provisioning' | 'complete' | 'error';
 
-interface ProvisionStatus {
-    supabase: 'pending' | 'loading' | 'complete' | 'error';
-    twilio: 'pending' | 'loading' | 'complete' | 'error';
-    vapi: 'pending' | 'loading' | 'complete' | 'error';
+interface Credentials {
+    loginUrl: string;
+    email: string;
+    tempPassword: string;
 }
 
-export default function OnboardModal({ isOpen, onClose, onSubmit }: OnboardModalProps) {
+interface ProvisionStatus {
+    auth: 'pending' | 'loading' | 'complete' | 'error';
+    practice: 'pending' | 'loading' | 'complete' | 'error';
+    phone: 'pending' | 'loading' | 'complete' | 'error';
+}
+
+export default function OnboardModal({ isOpen, onClose, onSuccess, prefill }: OnboardModalProps) {
     const [step, setStep] = useState<Step>('info');
     const [formData, setFormData] = useState({
-        name: '',
+        practiceName: '',
         ownerName: '',
         email: '',
         phone: '',
         plan: 'free_trial' as 'free_trial' | 'basic' | 'pro',
     });
-    const [provisionedNumber, setProvisionedNumber] = useState<string | null>(null);
+    const [credentials, setCredentials] = useState<Credentials | null>(null);
+    const [practiceInfo, setPracticeInfo] = useState<{ name: string; aiPhoneNumber: string } | null>(null);
     const [provisionStatus, setProvisionStatus] = useState<ProvisionStatus>({
-        supabase: 'pending',
-        twilio: 'pending',
-        vapi: 'pending',
+        auth: 'pending',
+        practice: 'pending',
+        phone: 'pending',
     });
     const [error, setError] = useState<string | null>(null);
+    const [copiedField, setCopiedField] = useState<string | null>(null);
+
+    // Auto-fill from prefill prop (when converting from booking request)
+    useEffect(() => {
+        if (prefill && isOpen) {
+            setFormData({
+                practiceName: prefill.practiceName,
+                ownerName: prefill.ownerName,
+                email: prefill.email,
+                phone: prefill.phone,
+                plan: 'free_trial',
+            });
+        }
+    }, [prefill, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const copyToClipboard = async (text: string, field: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedField(field);
+            setTimeout(() => setCopiedField(null), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
+
+    const copyAllCredentials = async () => {
+        if (!credentials || !practiceInfo) return;
+
+        const text = `DentaVoice Login Credentials
+
+Login URL: ${credentials.loginUrl}
+Email: ${credentials.email}
+Temporary Password: ${credentials.tempPassword}
+
+Your AI Phone Number: ${practiceInfo.aiPhoneNumber}
+
+Please log in and change your password in Settings.`;
+
+        await copyToClipboard(text, 'all');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -43,12 +102,11 @@ export default function OnboardModal({ isOpen, onClose, onSubmit }: OnboardModal
         setStep('provisioning');
         setError(null);
 
-        // Step 1: Show loading for Supabase
-        setProvisionStatus(prev => ({ ...prev, supabase: 'loading' }));
+        // Start provisioning animation
+        setProvisionStatus({ auth: 'loading', practice: 'pending', phone: 'pending' });
 
         try {
-            // Call API route (uses service role key server-side)
-            const response = await fetch('/api/admin/practices', {
+            const response = await fetch('/api/admin/create-client', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -57,51 +115,49 @@ export default function OnboardModal({ isOpen, onClose, onSubmit }: OnboardModal
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to create practice');
+                throw new Error(data.error || 'Failed to create client');
             }
 
-            // Step 1 complete
-            setProvisionStatus(prev => ({ ...prev, supabase: 'complete' }));
+            // Simulate step-by-step completion for better UX
+            setProvisionStatus(prev => ({ ...prev, auth: 'complete' }));
+            await new Promise(r => setTimeout(r, 400));
 
-            // Step 2: Twilio number (already done in API)
-            setProvisionStatus(prev => ({ ...prev, twilio: 'loading' }));
-            await new Promise(resolve => setTimeout(resolve, 800));
+            setProvisionStatus(prev => ({ ...prev, practice: 'loading' }));
+            await new Promise(r => setTimeout(r, 400));
+            setProvisionStatus(prev => ({ ...prev, practice: 'complete' }));
 
-            if (data.practice?.ai_phone_number) {
-                setProvisionedNumber(data.practice.ai_phone_number);
-            }
-            setProvisionStatus(prev => ({ ...prev, twilio: 'complete' }));
+            setProvisionStatus(prev => ({ ...prev, phone: 'loading' }));
+            await new Promise(r => setTimeout(r, 400));
+            setProvisionStatus(prev => ({ ...prev, phone: 'complete' }));
 
-            // Step 3: Vapi assistant (already done in API)
-            setProvisionStatus(prev => ({ ...prev, vapi: 'loading' }));
-            await new Promise(resolve => setTimeout(resolve, 600));
-            setProvisionStatus(prev => ({ ...prev, vapi: 'complete' }));
+            // Store credentials and practice info
+            setCredentials(data.credentials);
+            setPracticeInfo(data.practice);
 
-            // Complete!
+            await new Promise(r => setTimeout(r, 500));
             setStep('complete');
-
-            // Wait and close
-            setTimeout(() => {
-                onSubmit();
-                resetModal();
-            }, 2000);
 
         } catch (err) {
             console.error('Onboarding error:', err);
-            setError(err instanceof Error ? err.message : 'Failed to create practice');
+            setError(err instanceof Error ? err.message : 'Failed to create client');
             setStep('error');
         }
     };
 
     const resetModal = () => {
         setStep('info');
-        setFormData({ name: '', ownerName: '', email: '', phone: '', plan: 'free_trial' });
-        setProvisionedNumber(null);
-        setProvisionStatus({ supabase: 'pending', twilio: 'pending', vapi: 'pending' });
+        setFormData({ practiceName: '', ownerName: '', email: '', phone: '', plan: 'free_trial' });
+        setCredentials(null);
+        setPracticeInfo(null);
+        setProvisionStatus({ auth: 'pending', practice: 'pending', phone: 'pending' });
         setError(null);
+        setCopiedField(null);
     };
 
     const handleClose = () => {
+        if (step === 'complete') {
+            onSuccess();
+        }
         resetModal();
         onClose();
     };
@@ -110,16 +166,16 @@ export default function OnboardModal({ isOpen, onClose, onSubmit }: OnboardModal
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-lg shadow-2xl">
+            <div className="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-slate-700">
+                <div className="flex justify-between items-center p-6 border-b border-slate-700 sticky top-0 bg-slate-800">
                     <h2 className="text-xl font-bold text-white">
                         {step === 'info' && 'Onboard New Client'}
-                        {step === 'provisioning' && 'Setting Up...'}
-                        {step === 'complete' && 'Setup Complete!'}
+                        {step === 'provisioning' && 'Creating Account...'}
+                        {step === 'complete' && '✅ Client Ready!'}
                         {step === 'error' && 'Setup Failed'}
                     </h2>
-                    {(step === 'info' || step === 'error') && (
+                    {(step === 'info' || step === 'error' || step === 'complete') && (
                         <button onClick={handleClose} className="text-slate-400 hover:text-white">
                             <X size={24} />
                         </button>
@@ -128,18 +184,19 @@ export default function OnboardModal({ isOpen, onClose, onSubmit }: OnboardModal
 
                 {/* Content */}
                 <div className="p-6">
+                    {/* Step 1: Info Form */}
                     {step === 'info' && (
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                                    Practice Name
+                                    Practice Name *
                                 </label>
                                 <div className="relative">
                                     <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                                     <input
                                         type="text"
-                                        name="name"
-                                        value={formData.name}
+                                        name="practiceName"
+                                        value={formData.practiceName}
                                         onChange={handleChange}
                                         required
                                         placeholder="Smith Family Dental"
@@ -151,7 +208,7 @@ export default function OnboardModal({ isOpen, onClose, onSubmit }: OnboardModal
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                                        Owner Name
+                                        Owner Name *
                                     </label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -186,7 +243,7 @@ export default function OnboardModal({ isOpen, onClose, onSubmit }: OnboardModal
 
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                                    Owner Email
+                                    Owner Email * <span className="text-slate-500">(This becomes their login)</span>
                                 </label>
                                 <div className="relative">
                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -214,54 +271,127 @@ export default function OnboardModal({ isOpen, onClose, onSubmit }: OnboardModal
                                 >
                                     <option value="free_trial">Free Trial (30 days)</option>
                                     <option value="basic">Basic ($99/mo)</option>
-                                    <option value="pro">Pro ($199/mo)</option>
+                                    <option value="pro">Pro ($197/mo)</option>
                                 </select>
+                            </div>
+
+                            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 text-sm text-slate-400">
+                                <p className="flex items-start gap-2">
+                                    <Key size={16} className="mt-0.5 text-blue-400" />
+                                    A temporary password will be generated. You'll send it to the client so they can log in.
+                                </p>
                             </div>
 
                             <button
                                 type="submit"
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2 mt-6"
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
                             >
-                                Start Provisioning
+                                Create Client Account
                             </button>
                         </form>
                     )}
 
+                    {/* Step 2: Provisioning */}
                     {step === 'provisioning' && (
                         <div className="space-y-6 py-4">
                             <ProvisionStep
-                                label="Creating practice in database"
-                                status={provisionStatus.supabase}
+                                label="Creating user account"
+                                status={provisionStatus.auth}
+                            />
+                            <ProvisionStep
+                                label="Setting up practice"
+                                status={provisionStatus.practice}
                             />
                             <ProvisionStep
                                 label="Provisioning AI phone number"
-                                status={provisionStatus.twilio}
-                                detail={provisionedNumber || undefined}
-                            />
-                            <ProvisionStep
-                                label="Setting up Vapi AI assistant"
-                                status={provisionStatus.vapi}
+                                status={provisionStatus.phone}
                             />
                         </div>
                     )}
 
-                    {step === 'complete' && (
-                        <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Check className="text-green-400" size={32} />
+                    {/* Step 3: Complete - Show Credentials */}
+                    {step === 'complete' && credentials && practiceInfo && (
+                        <div className="space-y-6">
+                            <div className="text-center">
+                                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Check className="text-green-400" size={32} />
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-1">
+                                    {practiceInfo.name}
+                                </h3>
+                                <p className="text-slate-400">Account created successfully!</p>
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-2">
-                                {formData.name} is ready!
-                            </h3>
-                            <p className="text-slate-400 mb-4">
-                                AI phone number provisioned:
-                            </p>
-                            <div className="inline-flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-lg font-mono text-lg text-green-400">
-                                <Phone size={18} /> {provisionedNumber}
+
+                            {/* AI Phone Number */}
+                            <div className="bg-slate-900 rounded-lg p-4 text-center">
+                                <div className="text-slate-400 text-sm mb-1">AI Phone Number</div>
+                                <div className="text-2xl font-mono text-green-400 flex items-center justify-center gap-2">
+                                    <Phone size={20} />
+                                    {practiceInfo.aiPhoneNumber}
+                                </div>
+                            </div>
+
+                            {/* Credentials Section */}
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                                <h4 className="font-semibold text-blue-400 mb-3 flex items-center gap-2">
+                                    <Key size={16} />
+                                    Send these credentials to the client:
+                                </h4>
+                                <div className="space-y-3">
+                                    <CredentialRow
+                                        label="Login URL"
+                                        value={credentials.loginUrl}
+                                        onCopy={() => copyToClipboard(credentials.loginUrl, 'url')}
+                                        copied={copiedField === 'url'}
+                                    />
+                                    <CredentialRow
+                                        label="Email"
+                                        value={credentials.email}
+                                        onCopy={() => copyToClipboard(credentials.email, 'email')}
+                                        copied={copiedField === 'email'}
+                                    />
+                                    <CredentialRow
+                                        label="Temp Password"
+                                        value={credentials.tempPassword}
+                                        onCopy={() => copyToClipboard(credentials.tempPassword, 'password')}
+                                        copied={copiedField === 'password'}
+                                        isPassword
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={copyAllCredentials}
+                                    className={`flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors ${copiedField === 'all'
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-slate-700 hover:bg-slate-600 text-white'
+                                        }`}
+                                >
+                                    {copiedField === 'all' ? (
+                                        <>
+                                            <CheckCircle size={18} />
+                                            Copied!
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Copy size={18} />
+                                            Copy All
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={handleClose}
+                                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                                >
+                                    Done
+                                </button>
                             </div>
                         </div>
                     )}
 
+                    {/* Step 4: Error */}
                     {step === 'error' && (
                         <div className="text-center py-8">
                             <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -290,11 +420,9 @@ export default function OnboardModal({ isOpen, onClose, onSubmit }: OnboardModal
 function ProvisionStep({
     label,
     status,
-    detail
 }: {
     label: string;
     status: 'pending' | 'loading' | 'complete' | 'error';
-    detail?: string;
 }) {
     return (
         <div className="flex items-center gap-4">
@@ -316,14 +444,43 @@ function ProvisionStep({
                     </div>
                 )}
             </div>
-            <div className="flex-1">
-                <div className={`font-medium ${status === 'pending' ? 'text-slate-500' : status === 'error' ? 'text-red-400' : 'text-white'}`}>
-                    {label}
-                </div>
-                {detail && (
-                    <div className="text-sm text-green-400 font-mono">{detail}</div>
-                )}
+            <div className={`font-medium ${status === 'pending' ? 'text-slate-500' : status === 'error' ? 'text-red-400' : 'text-white'}`}>
+                {label}
             </div>
+        </div>
+    );
+}
+
+function CredentialRow({
+    label,
+    value,
+    onCopy,
+    copied,
+    isPassword = false
+}: {
+    label: string;
+    value: string;
+    onCopy: () => void;
+    copied: boolean;
+    isPassword?: boolean;
+}) {
+    return (
+        <div className="flex items-center justify-between bg-slate-800 rounded-lg px-4 py-2.5">
+            <div className="flex-1 min-w-0">
+                <div className="text-xs text-slate-500 mb-0.5">{label}</div>
+                <div className={`text-white truncate ${isPassword ? 'font-mono text-lg tracking-wider' : ''}`}>
+                    {value}
+                </div>
+            </div>
+            <button
+                onClick={onCopy}
+                className={`ml-3 p-2 rounded-lg transition-colors ${copied
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-white'
+                    }`}
+            >
+                {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
+            </button>
         </div>
     );
 }

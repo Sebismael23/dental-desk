@@ -22,7 +22,7 @@ export default function Home() {
       <AudioDemo />
       <PainCalculator />
       <Features />
-      <Pricing />
+      <Pricing onBookingClick={() => setShowBooking(true)} />
       <Footer />
       <DemoModal isOpen={showDemo} onClose={() => setShowDemo(false)} />
       <BookingModal isOpen={showBooking} onClose={() => setShowBooking(false)} />

@@ -92,9 +92,13 @@ CREATE TABLE IF NOT EXISTS users (
     practice_id UUID REFERENCES practices(id) ON DELETE CASCADE,
     email TEXT NOT NULL,
     full_name TEXT,
+    phone TEXT,
     role TEXT DEFAULT 'staff' CHECK (role IN ('owner', 'staff', 'admin')),
     last_login_at TIMESTAMPTZ
 );
+
+-- Add phone column if table already exists
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
 
 -- Calls (AI receptionist call logs)
 CREATE TABLE IF NOT EXISTS calls (

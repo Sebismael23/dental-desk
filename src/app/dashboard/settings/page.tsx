@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
-    User, Lock, Bell, Save, Loader2,
+    User, Lock, Bell, Building, Save, Loader2,
     CheckCircle, AlertCircle, Eye, EyeOff
 } from 'lucide-react';
 
-export default function SettingsScreen() {
+export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications'>('profile');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -22,10 +22,12 @@ export default function SettingsScreen() {
 
     // Password change
     const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
         newPassword: '',
         confirmPassword: '',
     });
     const [showPasswords, setShowPasswords] = useState({
+        current: false,
         new: false,
         confirm: false,
     });
@@ -113,7 +115,7 @@ export default function SettingsScreen() {
             if (error) throw error;
 
             setMessage({ type: 'success', text: 'Password changed successfully!' });
-            setPasswordData({ newPassword: '', confirmPassword: '' });
+            setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         } catch (err) {
             setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to change password' });
         } finally {
@@ -130,7 +132,7 @@ export default function SettingsScreen() {
     }
 
     return (
-        <div className="max-w-4xl">
+        <div className="max-w-4xl mx-auto">
             <div className="mb-8">
                 <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
                 <p className="text-slate-600 mt-1">Manage your account settings and preferences</p>

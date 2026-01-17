@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     Shield, Plus, Phone, Users, DollarSign, Activity, Search,
     TrendingUp, TrendingDown, Calendar, Clock,
-    Eye, Settings, Loader2, RefreshCw,
-    Mail, MessageSquare, CheckCircle, ArrowUpRight, BarChart3
+    Eye, Settings, Loader2, RefreshCw, X,
+    Mail, MessageSquare, CheckCircle, ArrowUpRight, BarChart3,
+    MoreVertical, UserPlus, Trash2, Edit, ExternalLink, PhoneCall
 } from 'lucide-react';
 import OnboardModal from '@/components/admin/onboard-modal';
 
@@ -15,6 +16,7 @@ interface Practice {
     name: string;
     owner_name: string | null;
     email: string;
+    phone: string | null;
     status: 'onboarding' | 'pilot' | 'active' | 'paused' | 'churned';
     plan: 'free_trial' | 'basic' | 'pro';
     ai_phone_number: string | null;
@@ -42,6 +44,14 @@ interface DashboardStats {
     monthlyRevenue: number;
 }
 
+interface OnboardPrefill {
+    practiceName: string;
+    ownerName: string;
+    email: string;
+    phone: string;
+    bookingId?: string;
+}
+
 const GOAL_LABELS: Record<string, string> = {
     missed_calls: 'Missed Calls',
     staffing: 'Staffing Issues',
@@ -59,6 +69,7 @@ function StatusBadge({ status }: { status: string }) {
         new: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
         contacted: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
         scheduled: 'bg-green-500/10 text-green-400 border-green-500/20',
+        completed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
         free_trial: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
         basic: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
         pro: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
@@ -110,6 +121,153 @@ function formatTimeAgo(date: string) {
     return `${diffDays}d ago`;
 }
 
+// Practice Details Modal
+function PracticeDetailModal({ practice, isOpen, onClose }: {
+    practice: Practice | null;
+    isOpen: boolean;
+    onClose: () => void;
+}) {
+    if (!isOpen || !practice) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center p-6 border-b border-slate-700 sticky top-0 bg-slate-800">
+                    <h2 className="text-xl font-bold text-white">{practice.name}</h2>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white">
+                        <X size={24} />
+                    </button>
+                </div>
+                <div className="p-6 space-y-6">
+                    {/* Quick Info */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-slate-900 rounded-lg p-4">
+                            <div className="text-slate-400 text-sm mb-1">Status</div>
+                            <StatusBadge status={practice.status} />
+                        </div>
+                        <div className="bg-slate-900 rounded-lg p-4">
+                            <div className="text-slate-400 text-sm mb-1">Plan</div>
+                            <StatusBadge status={practice.plan} />
+                        </div>
+                    </div>
+
+                    {/* Contact Info */}
+                    <div className="bg-slate-900 rounded-lg p-4 space-y-3">
+                        <h3 className="font-semibold text-white">Contact Information</h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span className="text-slate-400">Owner:</span>
+                                <span className="text-white ml-2">{practice.owner_name || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <span className="text-slate-400">Email:</span>
+                                <span className="text-white ml-2">{practice.email}</span>
+                            </div>
+                            <div>
+                                <span className="text-slate-400">Phone:</span>
+                                <span className="text-white ml-2">{practice.phone || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <span className="text-slate-400">Created:</span>
+                                <span className="text-white ml-2">{new Date(practice.created_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* AI Setup */}
+                    <div className="bg-slate-900 rounded-lg p-4 space-y-3">
+                        <h3 className="font-semibold text-white">AI Setup</h3>
+                        <div className="flex items-center gap-4">
+                            <Phone className="text-green-400" size={20} />
+                            <div>
+                                <div className="text-slate-400 text-sm">AI Phone Number</div>
+                                <div className="text-white font-mono text-lg">
+                                    {practice.ai_phone_number || 'Not provisioned'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3">
+                        <a
+                            href={`mailto:${practice.email}`}
+                            className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                        >
+                            <Mail size={16} />
+                            Email Client
+                        </a>
+                        {practice.ai_phone_number && (
+                            <a
+                                href={`tel:${practice.ai_phone_number}`}
+                                className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                            >
+                                <PhoneCall size={16} />
+                                Test AI
+                            </a>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Dropdown Menu Component - Uses fixed positioning to avoid clipping
+function DropdownMenu({ items, isOpen, onClose, buttonRect }: {
+    items: { label: string; icon: React.ElementType; onClick: () => void; danger?: boolean }[];
+    isOpen: boolean;
+    onClose: () => void;
+    buttonRect?: DOMRect | null;
+}) {
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) {
+                onClose();
+            }
+        };
+        const handleScroll = () => {
+            onClose(); // Close on scroll to avoid mispositioned dropdown
+        };
+        if (isOpen) {
+            document.addEventListener('click', handleClickOutside);
+            window.addEventListener('scroll', handleScroll, true);
+        }
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+            window.removeEventListener('scroll', handleScroll, true);
+        };
+    }, [isOpen, onClose]);
+
+    if (!isOpen || !buttonRect) return null;
+
+    // Calculate position - right-aligned below the button
+    const top = buttonRect.bottom + 4;
+    const left = Math.max(8, buttonRect.right - 180);
+
+    return (
+        <div
+            ref={ref}
+            className="fixed bg-slate-700 border border-slate-600 rounded-lg shadow-2xl py-1 z-[9999] min-w-[180px] max-h-[300px] overflow-y-auto"
+            style={{ top, left }}
+        >
+            {items.map((item, i) => (
+                <button
+                    key={i}
+                    onClick={() => { item.onClick(); onClose(); }}
+                    className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-slate-600 ${item.danger ? 'text-red-400 hover:text-red-300' : 'text-slate-200 hover:text-white'
+                        }`}
+                >
+                    <item.icon size={14} />
+                    {item.label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
 export default function AdminDashboardPage() {
     const [practices, setPractices] = useState<Practice[]>([]);
     const [bookings, setBookings] = useState<BookingRequest[]>([]);
@@ -123,9 +281,16 @@ export default function AdminDashboardPage() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [showOnboard, setShowOnboard] = useState(false);
+    const [onboardPrefill, setOnboardPrefill] = useState<OnboardPrefill | null>(null);
     const [activeTab, setActiveTab] = useState<'practices' | 'bookings'>('practices');
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
+
+    // Modals and dropdowns
+    const [selectedPractice, setSelectedPractice] = useState<Practice | null>(null);
+    const [showPracticeDetail, setShowPracticeDetail] = useState(false);
+    const [openPracticeMenu, setOpenPracticeMenu] = useState<{ id: string; rect: DOMRect } | null>(null);
+    const [openBookingMenu, setOpenBookingMenu] = useState<{ id: string; rect: DOMRect } | null>(null);
 
     const fetchData = async () => {
         setRefreshing(true);
@@ -142,7 +307,7 @@ export default function AdminDashboardPage() {
                     totalPractices: practicesData.practices.length,
                     activePractices: practicesData.practices.filter((p: Practice) => p.status === 'active').length,
                     monthlyRevenue: practicesData.practices.reduce((sum: number, p: Practice) => {
-                        if (p.plan === 'pro') return sum + 199;
+                        if (p.plan === 'pro') return sum + 197;
                         if (p.plan === 'basic') return sum + 99;
                         return sum;
                     }, 0)
@@ -185,6 +350,32 @@ export default function AdminDashboardPage() {
         }
     };
 
+    const deleteBooking = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this booking request?')) return;
+        try {
+            await fetch('/api/admin/bookings', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id }),
+            });
+            fetchData();
+        } catch (err) {
+            console.error('Error deleting booking:', err);
+        }
+    };
+
+    // Convert booking to client - auto-fill onboard modal
+    const convertToClient = (booking: BookingRequest) => {
+        setOnboardPrefill({
+            practiceName: `${booking.first_name} ${booking.last_name} Dental`,
+            ownerName: `${booking.first_name} ${booking.last_name}`,
+            email: booking.email,
+            phone: booking.phone,
+            bookingId: booking.id,
+        });
+        setShowOnboard(true);
+    };
+
     const filteredPractices = practices.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (p.owner_name?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
@@ -192,9 +383,24 @@ export default function AdminDashboardPage() {
         return matchesSearch && matchesStatus;
     });
 
-    const handleNewPractice = () => {
+    const handleNewPractice = async () => {
+        // If we converted from a booking, mark it as completed
+        if (onboardPrefill?.bookingId) {
+            await updateBookingStatus(onboardPrefill.bookingId, 'completed');
+        }
         setShowOnboard(false);
+        setOnboardPrefill(null);
         fetchData();
+    };
+
+    const handleOpenOnboard = () => {
+        setOnboardPrefill(null);
+        setShowOnboard(true);
+    };
+
+    const handleCloseOnboard = () => {
+        setShowOnboard(false);
+        setOnboardPrefill(null);
     };
 
     if (loading) {
@@ -229,7 +435,7 @@ export default function AdminDashboardPage() {
                             Refresh
                         </button>
                         <button
-                            onClick={() => setShowOnboard(true)}
+                            onClick={handleOpenOnboard}
                             className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20"
                         >
                             <Plus size={18} /> Onboard Client
@@ -251,8 +457,8 @@ export default function AdminDashboardPage() {
                     <button
                         onClick={() => setActiveTab('practices')}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'practices'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                             }`}
                     >
                         Practices ({practices.length})
@@ -260,8 +466,8 @@ export default function AdminDashboardPage() {
                     <button
                         onClick={() => setActiveTab('bookings')}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${activeTab === 'bookings'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                             }`}
                     >
                         Booking Requests
@@ -312,7 +518,7 @@ export default function AdminDashboardPage() {
                                     <h3 className="text-lg font-semibold text-slate-300 mb-2">No practices yet</h3>
                                     <p className="text-slate-500 mb-4">Get started by onboarding your first client</p>
                                     <button
-                                        onClick={() => setShowOnboard(true)}
+                                        onClick={handleOpenOnboard}
                                         className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium"
                                     >
                                         Onboard Client
@@ -355,12 +561,43 @@ export default function AdminDashboardPage() {
                                                 </td>
                                                 <td className="p-4 lg:p-6 text-right">
                                                     <div className="flex justify-end gap-2">
-                                                        <button className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded text-white font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedPractice(practice);
+                                                                setShowPracticeDetail(true);
+                                                            }}
+                                                            className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded text-white font-medium flex items-center gap-1"
+                                                        >
                                                             <Eye size={14} />
+                                                            <span className="hidden sm:inline">View</span>
                                                         </button>
-                                                        <button className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 rounded text-white font-medium">
-                                                            <Settings size={14} />
-                                                        </button>
+                                                        <div className="relative">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                                    setOpenPracticeMenu(
+                                                                        openPracticeMenu?.id === practice.id
+                                                                            ? null
+                                                                            : { id: practice.id, rect }
+                                                                    );
+                                                                }}
+                                                                className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 rounded text-white font-medium"
+                                                            >
+                                                                <MoreVertical size={14} />
+                                                            </button>
+                                                            <DropdownMenu
+                                                                isOpen={openPracticeMenu?.id === practice.id}
+                                                                onClose={() => setOpenPracticeMenu(null)}
+                                                                buttonRect={openPracticeMenu?.rect}
+                                                                items={[
+                                                                    { label: 'Edit Practice', icon: Edit, onClick: () => alert('Edit not implemented yet') },
+                                                                    { label: 'Email Client', icon: Mail, onClick: () => window.open(`mailto:${practice.email}`) },
+                                                                    { label: 'Test AI Call', icon: PhoneCall, onClick: () => practice.ai_phone_number && window.open(`tel:${practice.ai_phone_number}`) },
+                                                                    { label: 'View in Supabase', icon: ExternalLink, onClick: () => window.open(`https://supabase.com/dashboard/project/ubljkwzhclzdcxykwhqy/editor/practices?id=${practice.id}`) },
+                                                                ]}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -415,31 +652,48 @@ export default function AdminDashboardPage() {
                                                     </p>
                                                 )}
                                             </div>
-                                            <div className="flex gap-2">
-                                                {booking.status === 'new' && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => updateBookingStatus(booking.id, 'contacted')}
-                                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium flex items-center gap-2"
-                                                        >
-                                                            <CheckCircle size={14} /> Mark Contacted
-                                                        </button>
-                                                        <button
-                                                            onClick={() => updateBookingStatus(booking.id, 'scheduled')}
-                                                            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-medium flex items-center gap-2"
-                                                        >
-                                                            <Calendar size={14} /> Scheduled
-                                                        </button>
-                                                    </>
-                                                )}
-                                                {booking.status === 'contacted' && (
+                                            <div className="flex gap-2 items-center">
+                                                {/* Quick action buttons */}
+                                                {booking.status !== 'completed' && (
                                                     <button
-                                                        onClick={() => updateBookingStatus(booking.id, 'scheduled')}
+                                                        onClick={() => convertToClient(booking)}
                                                         className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-medium flex items-center gap-2"
                                                     >
-                                                        <Calendar size={14} /> Mark Scheduled
+                                                        <UserPlus size={14} />
+                                                        Convert to Client
                                                     </button>
                                                 )}
+
+                                                {/* Options dropdown */}
+                                                <div className="relative">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                            setOpenBookingMenu(
+                                                                openBookingMenu?.id === booking.id
+                                                                    ? null
+                                                                    : { id: booking.id, rect }
+                                                            );
+                                                        }}
+                                                        className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg"
+                                                    >
+                                                        <MoreVertical size={16} />
+                                                    </button>
+                                                    <DropdownMenu
+                                                        isOpen={openBookingMenu?.id === booking.id}
+                                                        onClose={() => setOpenBookingMenu(null)}
+                                                        buttonRect={openBookingMenu?.rect}
+                                                        items={[
+                                                            { label: 'Mark Contacted', icon: CheckCircle, onClick: () => updateBookingStatus(booking.id, 'contacted') },
+                                                            { label: 'Mark Scheduled', icon: Calendar, onClick: () => updateBookingStatus(booking.id, 'scheduled') },
+                                                            { label: 'Mark Completed', icon: CheckCircle, onClick: () => updateBookingStatus(booking.id, 'completed') },
+                                                            { label: 'Email Lead', icon: Mail, onClick: () => window.open(`mailto:${booking.email}`) },
+                                                            { label: 'Call Lead', icon: PhoneCall, onClick: () => window.open(`tel:${booking.phone}`) },
+                                                            { label: 'Delete', icon: Trash2, onClick: () => deleteBooking(booking.id), danger: true },
+                                                        ]}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -508,11 +762,19 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
 
+            {/* Practice Detail Modal */}
+            <PracticeDetailModal
+                practice={selectedPractice}
+                isOpen={showPracticeDetail}
+                onClose={() => setShowPracticeDetail(false)}
+            />
+
             {/* Onboard Modal */}
             <OnboardModal
                 isOpen={showOnboard}
-                onClose={() => setShowOnboard(false)}
-                onSubmit={handleNewPractice}
+                onClose={handleCloseOnboard}
+                onSuccess={handleNewPractice}
+                prefill={onboardPrefill}
             />
         </div>
     );

@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import {
     Shield, LayoutDashboard, Users, Calendar, Settings,
     Phone, BarChart3, Bell, ChevronLeft, ChevronRight,
-    LogOut, Menu, X, Search, User
+    LogOut, Menu, X, Search, User, Loader2
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -24,6 +25,20 @@ const navItems = [
 
 function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const supabase = createClient();
+    const [loggingOut, setLoggingOut] = useState(false);
+
+    const handleSignOut = async () => {
+        setLoggingOut(true);
+        try {
+            await supabase.auth.signOut();
+            router.push('/login');
+        } catch (err) {
+            console.error('Error signing out:', err);
+            setLoggingOut(false);
+        }
+    };
 
     return (
         <aside className={`fixed left-0 top-0 h-screen bg-slate-900 border-r border-slate-800 z-40 transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'
@@ -59,8 +74,8 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
                             key={item.href}
                             href={item.href}
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${isActive
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                 }`}
                         >
                             <item.icon size={20} />
@@ -72,13 +87,14 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 
             {/* Bottom section */}
             <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-slate-800">
-                <Link
-                    href="/"
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
+                <button
+                    onClick={handleSignOut}
+                    disabled={loggingOut}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-50"
                 >
-                    <LogOut size={20} />
-                    {!collapsed && <span>Exit Admin</span>}
-                </Link>
+                    {loggingOut ? <Loader2 size={20} className="animate-spin" /> : <LogOut size={20} />}
+                    {!collapsed && <span>{loggingOut ? 'Signing out...' : 'Sign Out'}</span>}
+                </button>
             </div>
         </aside>
     );
@@ -132,13 +148,27 @@ function Navbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
 
 function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const supabase = createClient();
+    const [loggingOut, setLoggingOut] = useState(false);
+
+    const handleSignOut = async () => {
+        setLoggingOut(true);
+        try {
+            await supabase.auth.signOut();
+            router.push('/login');
+        } catch (err) {
+            console.error('Error signing out:', err);
+            setLoggingOut(false);
+        }
+    };
 
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-50 lg:hidden">
             <div className="fixed inset-0 bg-black/60" onClick={onClose} />
-            <div className="fixed left-0 top-0 h-full w-72 bg-slate-900 border-r border-slate-800 p-4">
+            <div className="fixed left-0 top-0 h-full w-72 bg-slate-900 border-r border-slate-800 p-4 flex flex-col">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
@@ -154,7 +184,7 @@ function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
                     </button>
                 </div>
 
-                <nav className="space-y-1">
+                <nav className="space-y-1 flex-1">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href;
                         return (
@@ -163,8 +193,8 @@ function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
                                 href={item.href}
                                 onClick={onClose}
                                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${isActive
-                                        ? 'bg-blue-600 text-white'
-                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                     }`}
                             >
                                 <item.icon size={20} />
@@ -173,6 +203,18 @@ function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
                         );
                     })}
                 </nav>
+
+                {/* Sign Out Button */}
+                <div className="pt-4 border-t border-slate-800">
+                    <button
+                        onClick={handleSignOut}
+                        disabled={loggingOut}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-50"
+                    >
+                        {loggingOut ? <Loader2 size={20} className="animate-spin" /> : <LogOut size={20} />}
+                        <span>{loggingOut ? 'Signing out...' : 'Sign Out'}</span>
+                    </button>
+                </div>
             </div>
         </div>
     );

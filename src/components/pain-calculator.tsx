@@ -9,7 +9,7 @@ export default function PainCalculator() {
     const [isVisible, setIsVisible] = useState(false);
     const sectionRef = useRef<HTMLElement>(null);
 
-    const MONTHLY_COST = 297;
+    const MONTHLY_COST = 197;
 
     // Calculation: Missed calls per week * 4 weeks * conversion rate * patient value
     const monthlyRevenue = Math.round(missedCalls * 4 * (conversionRate / 100) * patientValue);
@@ -109,7 +109,7 @@ export default function PainCalculator() {
                                 <span className="font-bold text-green-400">${annualRevenue.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between w-full text-sm">
-                                <span className="text-slate-400">Cost of DentDesk AI:</span>
+                                <span className="text-slate-400">Cost of DentaVoice:</span>
                                 <span className="font-bold text-white">${MONTHLY_COST}/mo</span>
                             </div>
 

@@ -66,3 +66,30 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+
+// DELETE: Remove a booking request
+export async function DELETE(request: NextRequest) {
+    try {
+        const body = await request.json();
+        const { id } = body;
+
+        if (!id) {
+            return NextResponse.json({ error: 'ID required' }, { status: 400 });
+        }
+
+        const { error } = await supabaseAdmin
+            .from('booking_requests')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting booking:', error);
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true });
+    } catch (err) {
+        console.error('API error:', err);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
