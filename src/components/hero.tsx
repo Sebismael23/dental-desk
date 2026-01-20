@@ -59,7 +59,7 @@ export default function Hero({ onDemoClick }: { onDemoClick: () => void }) {
                                 </div>
                             ))}
                         </div>
-                        <p>Trusted by 200+ dental practices</p>
+                        {/* <p>Trusted by 200+ dental practices</p> */}
                     </div>
                 </div>
             </div>

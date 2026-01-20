@@ -22,7 +22,7 @@ const features = [
         icon: '📅',
         color: 'bg-primary-100 text-primary-600',
         title: 'Books Appointments',
-        desc: 'Integrates directly with Dentrix, Eaglesoft, and OpenDental.',
+        desc: 'Coming soon: direct integration with Dentrix, Eaglesoft, OpenDental.',
     },
     {
         icon: '🛡️',
