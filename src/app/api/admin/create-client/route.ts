@@ -1,17 +1,24 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Use service role for admin operations (can create users)
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
+// Lazy initialization to avoid build-time errors
+let supabaseAdmin: SupabaseClient | null = null;
+
+function getSupabaseAdmin() {
+    if (!supabaseAdmin) {
+        supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        );
     }
-);
+    return supabaseAdmin;
+}
 
 // Generate a secure temporary password
 function generateTempPassword(): string {
@@ -50,7 +57,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Check if email already exists
-        const { data: existingUser } = await supabaseAdmin
+        const { data: existingUser } = await getSupabaseAdmin()
             .from('users')
             .select('id')
             .eq('email', email)
@@ -67,7 +74,7 @@ export async function POST(request: NextRequest) {
         const tempPassword = generateTempPassword();
 
         // 2. Create auth user with Supabase Admin API
-        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        const { data: authData, error: authError } = await getSupabaseAdmin().auth.admin.createUser({
             email,
             password: tempPassword,
             email_confirm: true, // Skip email confirmation (concierge model)
@@ -86,7 +93,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 3. Create practice record
-        const { data: practice, error: practiceError } = await supabaseAdmin
+        const { data: practice, error: practiceError } = await getSupabaseAdmin()
             .from('practices')
             .insert({
                 name: practiceName,
@@ -110,7 +117,7 @@ export async function POST(request: NextRequest) {
 
         if (practiceError) {
             // Rollback: delete auth user if practice creation fails
-            await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+            await getSupabaseAdmin().auth.admin.deleteUser(authData.user.id);
             console.error('Practice error:', practiceError);
             return NextResponse.json(
                 { error: `Failed to create practice: ${practiceError.message}` },
@@ -119,7 +126,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 4. Create user record linked to practice
-        const { error: userError } = await supabaseAdmin
+        const { error: userError } = await getSupabaseAdmin()
             .from('users')
             .insert({
                 id: authData.user.id,
@@ -131,8 +138,8 @@ export async function POST(request: NextRequest) {
 
         if (userError) {
             // Rollback: delete auth user and practice
-            await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-            await supabaseAdmin.from('practices').delete().eq('id', practice.id);
+            await getSupabaseAdmin().auth.admin.deleteUser(authData.user.id);
+            await getSupabaseAdmin().from('practices').delete().eq('id', practice.id);
             console.error('User error:', userError);
             return NextResponse.json(
                 { error: `Failed to create user record: ${userError.message}` },

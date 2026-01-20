@@ -1,16 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Use service role for admin operations (bypasses RLS)
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Lazy initialization to avoid build-time errors
+let supabaseAdmin: SupabaseClient | null = null;
+
+function getSupabaseAdmin() {
+    if (!supabaseAdmin) {
+        supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+    }
+    return supabaseAdmin;
+}
 
 // GET: Fetch all practices
 export async function GET() {
     try {
-        const { data: practices, error } = await supabaseAdmin
+        const { data: practices, error } = await getSupabaseAdmin()
             .from('practices')
             .select('*')
             .order('created_at', { ascending: false });
@@ -42,7 +49,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create practice
-        const { data: practice, error } = await supabaseAdmin
+        const { data: practice, error } = await getSupabaseAdmin()
             .from('practices')
             .insert({
                 name,
@@ -68,7 +75,7 @@ export async function POST(request: NextRequest) {
         const aiPhoneNumber = `(${areaCode}) 555-${Math.floor(1000 + Math.random() * 9000)}`;
 
         // Update practice with AI phone number and Vapi ID
-        const { error: updateError } = await supabaseAdmin
+        const { error: updateError } = await getSupabaseAdmin()
             .from('practices')
             .update({
                 ai_phone_number: aiPhoneNumber,
@@ -103,7 +110,7 @@ export async function PATCH(request: NextRequest) {
             return NextResponse.json({ error: 'Practice ID required' }, { status: 400 });
         }
 
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabaseAdmin()
             .from('practices')
             .update(updates)
             .eq('id', id)

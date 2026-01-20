@@ -1,11 +1,18 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Use service role for admin operations
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Lazy initialization to avoid build-time errors
+let supabaseAdmin: SupabaseClient | null = null;
+
+function getSupabaseAdmin() {
+    if (!supabaseAdmin) {
+        supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+    }
+    return supabaseAdmin;
+}
 
 // POST: Create the initial super admin account
 // This is a one-time setup endpoint
@@ -20,7 +27,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Check if any super_admin already exists
-        const { data: existingAdmin } = await supabaseAdmin
+        const { data: existingAdmin } = await getSupabaseAdmin()
             .from('admin_users')
             .select('id')
             .eq('role', 'super_admin')
@@ -49,7 +56,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create auth user
-        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        const { data: authData, error: authError } = await getSupabaseAdmin().auth.admin.createUser({
             email,
             password,
             email_confirm: true,
@@ -65,7 +72,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create admin_users record as super_admin
-        const { data: adminUser, error: adminError } = await supabaseAdmin
+        const { data: adminUser, error: adminError } = await getSupabaseAdmin()
             .from('admin_users')
             .insert({
                 id: authData.user.id,
@@ -78,7 +85,7 @@ export async function POST(request: NextRequest) {
 
         if (adminError) {
             // Rollback: delete the auth user if admin_users insert fails
-            await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+            await getSupabaseAdmin().auth.admin.deleteUser(authData.user.id);
             console.error('Error creating admin user record:', adminError);
             return NextResponse.json({ error: adminError.message }, { status: 500 });
         }

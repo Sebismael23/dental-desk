@@ -1,18 +1,25 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Use service role for admin operations (bypasses RLS)
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Lazy initialization to avoid build-time errors
+let supabaseAdmin: SupabaseClient | null = null;
+
+function getSupabaseAdmin() {
+    if (!supabaseAdmin) {
+        supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+    }
+    return supabaseAdmin;
+}
 
 const ROLE_HIERARCHY = { super_admin: 3, admin: 2, viewer: 1 };
 
 // GET: Fetch all admin users
 export async function GET() {
     try {
-        const { data: users, error } = await supabaseAdmin
+        const { data: users, error } = await getSupabaseAdmin()
             .from('admin_users')
             .select('*')
             .order('created_at', { ascending: true });
@@ -52,7 +59,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create auth user
-        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        const { data: authData, error: authError } = await getSupabaseAdmin().auth.admin.createUser({
             email,
             password,
             email_confirm: true, // Auto-confirm email
@@ -68,7 +75,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create admin_users record
-        const { data: adminUser, error: adminError } = await supabaseAdmin
+        const { data: adminUser, error: adminError } = await getSupabaseAdmin()
             .from('admin_users')
             .insert({
                 id: authData.user.id,
@@ -81,7 +88,7 @@ export async function POST(request: NextRequest) {
 
         if (adminError) {
             // Rollback: delete the auth user if admin_users insert fails
-            await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+            await getSupabaseAdmin().auth.admin.deleteUser(authData.user.id);
             console.error('Error creating admin user record:', adminError);
             return NextResponse.json({ error: adminError.message }, { status: 500 });
         }
@@ -109,7 +116,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         // Delete from admin_users table
-        const { error: adminError } = await supabaseAdmin
+        const { error: adminError } = await getSupabaseAdmin()
             .from('admin_users')
             .delete()
             .eq('id', id);
@@ -120,7 +127,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         // Delete auth user
-        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+        const { error: authError } = await getSupabaseAdmin().auth.admin.deleteUser(id);
 
         if (authError) {
             console.error('Error deleting auth user:', authError);
@@ -156,7 +163,7 @@ export async function PATCH(request: NextRequest) {
             return NextResponse.json({ error: 'No valid updates provided' }, { status: 400 });
         }
 
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabaseAdmin()
             .from('admin_users')
             .update(updates)
             .eq('id', id)

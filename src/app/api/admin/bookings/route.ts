@@ -1,16 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Use service role for admin operations (bypasses RLS)
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Lazy initialization to avoid build-time errors
+let supabaseAdmin: SupabaseClient | null = null;
+
+function getSupabaseAdmin() {
+    if (!supabaseAdmin) {
+        supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+    }
+    return supabaseAdmin;
+}
 
 // GET: Fetch all booking requests
 export async function GET() {
     try {
-        const { data: bookings, error } = await supabaseAdmin
+        const { data: bookings, error } = await getSupabaseAdmin()
             .from('booking_requests')
             .select('*')
             .order('created_at', { ascending: false });
@@ -52,7 +59,7 @@ export async function PATCH(request: NextRequest) {
 
         console.log('Updating with - status:', status);
 
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabaseAdmin()
             .from('booking_requests')
             .update(updates)
             .eq('id', id)
@@ -85,7 +92,7 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ error: 'ID required' }, { status: 400 });
         }
 
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabaseAdmin()
             .from('booking_requests')
             .delete()
             .eq('id', id);
