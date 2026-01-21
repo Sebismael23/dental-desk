@@ -22,7 +22,7 @@ const features = [
         icon: '📅',
         color: 'bg-primary-100 text-primary-600',
         title: 'Books Appointments',
-        desc: 'Coming soon: direct integration with Dentrix, Eaglesoft, OpenDental.',
+        desc: 'Works with your calendar via custom setup.',
     },
     {
         icon: '🛡️',
@@ -72,7 +72,7 @@ export default function AudioDemo() {
                             <span className="text-primary-600">Because your patients deserve empathy.</span>
                         </h2>
                         <p className="text-slate-600 mb-8 text-lg">
-                            Unlike "Press 1 for hours" bots, DentDesk AI understands context, nuance, and urgency. It sounds natural, handles interruptions, and never gets tired.
+                            Unlike "Press 1 for hours" bots, DentaVoice understands context, nuance, and urgency. It sounds natural, handles interruptions, and never gets tired.
                         </p>
 
                         <div className="space-y-4">

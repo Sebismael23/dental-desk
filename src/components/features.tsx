@@ -7,13 +7,13 @@ const features = [
         icon: '📊',
         color: 'bg-primary-100 text-primary-600',
         title: 'Real-Time Dashboard',
-        desc: 'See every call as it happens. Listen to recordings, read summaries, and track bookings in one simple view.',
+        desc: 'See every call as it happened. Listen to recordings, read summaries, and track bookings in one simple view.',
     },
     {
         icon: '💬',
         color: 'bg-purple-100 text-purple-600',
         title: 'SMS Follow-Up',
-        desc: 'If a patient calls from a mobile phone, DentDesk AI instantly texts them a booking link after the call.',
+        desc: 'If a patient calls from a mobile phone, DentaVoice instantly texts them a booking link after the call.',
     },
     {
         icon: '⚡',
@@ -25,7 +25,7 @@ const features = [
         icon: '📅',
         color: 'bg-green-100 text-green-600',
         title: 'Direct Calendar Booking',
-        desc: 'Integrates with Dentrix, Eaglesoft, and OpenDental. Appointments sync in real-time.',
+        desc: 'Works with your calendar via custom setup. Appointments sync in real-time.',
     },
     {
         icon: '🎙️',
@@ -37,7 +37,7 @@ const features = [
         icon: '🌙',
         color: 'bg-indigo-100 text-indigo-600',
         title: '24/7 Availability',
-        desc: 'Never miss a call again—nights, weekends, holidays. Your AI receptionist never sleeps.',
+        desc: 'Never miss a call again. Nights, weekends, holidays. Your AI receptionist never sleeps.',
     },
 ];
 

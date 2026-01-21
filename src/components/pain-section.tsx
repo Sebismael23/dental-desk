@@ -5,11 +5,11 @@ import { useEffect, useRef, useState } from 'react';
 const painPoints = [
     {
         icon: '📵',
-        text: 'New patients hang up — they don\'t leave voicemails',
+        text: 'New patients hang up they don\'t leave voicemails',
     },
     {
         icon: '🏃',
-        text: 'Existing patients call another office that picks up',
+        text: 'Call another office that picks up',
     },
     {
         icon: '😫',

@@ -24,8 +24,8 @@ export default function Hero({ onDemoClick }: { onDemoClick: () => void }) {
 
                     {/* Subheadline */}
                     <p className="text-lg sm:text-xl text-slate-600 mb-10 leading-relaxed max-w-2xl mx-auto animate-fade-in-up">
-                        Join a limited pilot — AI receptionist that answers every call,
-                        captures lead info, and books appointments — <span className="font-semibold text-slate-800">free for 14 days</span>
+                        Join a limited pilot. AI receptionist that answers every call,
+                        captures lead info, and books appointments.   <span className="font-semibold text-slate-800">free for 14 days</span>
                     </p>
 
                     {/* Single Strong CTA */}
