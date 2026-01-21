@@ -5,28 +5,25 @@ import { useEffect, useRef, useState } from 'react';
 const steps = [
     {
         number: '1',
-        icon: '📋',
-        title: 'Tell Us About Your Practice',
-        description: 'Share your hours, services, providers, and common patient questions. We\'ll customize your AI to sound just like your front desk.',
-        features: ['Custom greeting', 'Practice-specific responses', 'Insurance handling'],
+        icon: '📞',
+        title: 'We set up your AI receptionist',
+        description: 'Tell us your hours and preferences. We handle the rest.',
     },
     {
         number: '2',
-        icon: '📅',
-        title: 'Connect Your Calendar',
-        description: 'We integrate with Dentrix, Eaglesoft, Open Dental, and others. Your AI sees real-time availability and books directly.',
-        features: ['Direct scheduling', 'Real-time availability', 'Automatic sync'],
+        icon: '🔀',
+        title: 'Forward missed calls to DentaVoice',
+        description: 'When your front desk can\'t answer, calls route automatically.',
     },
     {
         number: '3',
-        icon: '📞',
-        title: 'Forward Your Calls',
-        description: 'Set up call forwarding when your staff is busy, after hours, or always. Your AI handles the rest and you get notified of every call.',
-        features: ['After-hours routing', 'Overflow handling', 'Instant notifications'],
+        icon: '📊',
+        title: 'See every call in your dashboard',
+        description: 'Get instant summaries, recordings, and new patient details.',
     },
 ];
 
-export default function HowItWorks() {
+export default function HowItWorks({ onBookingClick }: { onBookingClick: () => void }) {
     const [isVisible, setIsVisible] = useState(false);
     const sectionRef = useRef<HTMLElement>(null);
 
@@ -48,18 +45,15 @@ export default function HowItWorks() {
     }, []);
 
     return (
-        <section id="how" ref={sectionRef} className="py-20 md:py-28 bg-white">
+        <section id="how" ref={sectionRef} className="py-20 md:py-28 bg-slate-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-16">
-                    <div className="inline-flex items-center gap-2 bg-primary-100/80 text-primary-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
-                        <span>⚡</span>
-                        <span>Quick & Easy Setup</span>
-                    </div>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
                         How It Works
                     </h2>
                     <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Get your AI receptionist up and running in 48 hours with zero technical setup required
+                        Get DentaVoice answering your calls in <span className="font-semibold text-primary-600">24 hours</span>.
+                        No technical setup required.
                     </p>
                 </div>
 
@@ -67,19 +61,19 @@ export default function HowItWorks() {
                     {steps.map((step, index) => (
                         <div
                             key={index}
-                            className={`group relative bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 border border-gray-100 shadow-lg hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 ${isVisible
-                                    ? 'opacity-100 translate-y-0'
-                                    : 'opacity-0 translate-y-8'
+                            className={`group relative text-center transition-all duration-500 transform ${isVisible
+                                ? 'opacity-100 translate-y-0'
+                                : 'opacity-0 translate-y-8'
                                 }`}
                             style={{ transitionDelay: `${index * 150}ms` }}
                         >
-                            {/* Step Number */}
-                            <div className="absolute -top-4 -left-4 w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-110 transition-transform">
+                            {/* Step Number Badge */}
+                            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-700 font-bold text-lg mb-6">
                                 {step.number}
                             </div>
 
                             {/* Icon */}
-                            <div className="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
+                            <div className="w-20 h-20 bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-2xl flex items-center justify-center text-4xl mx-auto mb-6 group-hover:scale-110 group-hover:border-primary-200 transition-all duration-300">
                                 {step.icon}
                             </div>
 
@@ -87,40 +81,33 @@ export default function HowItWorks() {
                             <h3 className="text-xl font-bold text-gray-900 mb-3">
                                 {step.title}
                             </h3>
-                            <p className="text-gray-600 mb-6 leading-relaxed">
+                            <p className="text-gray-600 leading-relaxed">
                                 {step.description}
                             </p>
 
-                            {/* Features */}
-                            <div className="space-y-2">
-                                {step.features.map((feature, i) => (
-                                    <div key={i} className="flex items-center gap-2 text-sm text-gray-500">
-                                        <svg className="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        {feature}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Connector Line (not on last item) */}
+                            {/* Connector Arrow (not on last item) */}
                             {index < steps.length - 1 && (
-                                <div className="hidden md:block absolute top-1/2 -right-6 lg:-right-8 w-12 lg:w-16 h-0.5 bg-gradient-to-r from-primary-200 to-transparent" />
+                                <div className="hidden md:block absolute top-28 -right-4 lg:-right-6">
+                                    <svg className="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                </div>
                             )}
                         </div>
                     ))}
                 </div>
 
-                {/* Integrations */}
-                <div className="mt-16 text-center">
-                    <p className="text-gray-500 mb-6">Integrates with your existing tools</p>
-                    <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
-                        {['Dentrix', 'Eaglesoft', 'Open Dental', 'Curve', 'Practice Web'].map((tool, i) => (
-                            <div key={i} className="text-gray-400 font-semibold text-lg hover:text-primary-600 transition-colors cursor-default">
-                                {tool}
-                            </div>
-                        ))}
-                    </div>
+                {/* CTA Button */}
+                <div className="text-center mt-14">
+                    <button
+                        onClick={onBookingClick}
+                        className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-full font-bold text-lg hover:from-primary-700 hover:to-primary-600 transition-all shadow-xl shadow-primary-500/25 hover:shadow-primary-500/30 hover:-translate-y-1"
+                    >
+                        <span>Start Your Free 14-Day Pilot</span>
+                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
                 </div>
             </div>
         </section>
