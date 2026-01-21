@@ -27,9 +27,11 @@ export default function Navigation({ onBookingClick }: NavigationProps) {
                 <div className={`flex justify-between items-center transition-all duration-300 ${scrolled ? 'h-16' : 'h-20'}`}>
                     {/* Logo */}
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold">
-                            D
-                        </div>
+                        <img
+                            src="/dentavoice_logo.png"
+                            alt="DentaVoice"
+                            className="h-8 w-auto"
+                        />
                         <span className="font-bold text-xl tracking-tight text-slate-800">
                             DentaVoice
                         </span>
